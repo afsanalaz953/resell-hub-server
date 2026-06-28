@@ -8,7 +8,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const dontenv = require('dotenv');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 dontenv.config()
 const port = process.env.PORT || 5000;
 
@@ -47,8 +47,55 @@ async function run() {
 
 // database collection start of momgo
 const db = client.db("resellHub")
+const addproductCollection = db.collection("productCollection");
+const myproductCollection = db.collection("myproduct");
+const wishlistCollection = db.collection("wishlist");
+const paymentCollection = db.collection("payment");
 
-const productCollections = db.collection("productCollection")
+//1)for getting productsdata from form
+app.post('/api/seller/products', async(req,res) =>{
+  const productsData = req.body
+  const result = await addproductCollection .insertOne(productsData)
+  res.json(result)
+})
+
+/   //  getting data from mongodatabase for my-tutors page by clicking form
+// userId na dhore data pathano process
+ app.get('/api/seller/products', async(req, res) => {
+  //  const {userId} = req.params;
+  //  console.log(userId,"userId with params")
+
+const result= await addproductCollection.find().toArray()
+res.json(result);
+console.log( "Allmyproducts in server", result)
+ })
+
+ // // productId 
+// param thake productId dhore for delete
+app.delete("/api/seller/:productId", async(req, res) =>{
+const {productId} = req.params;
+
+// // //  if get id then go to mongodoc for delete query
+// // // for particular id selection 
+//  const query = {_id : new ObjectId(id)}
+ const result = await addproductCollection.deleteOne({_id:new ObjectId(productId)});
+
+res.json(result)
+
+});
+
+// updated product api
+ app.patch("/api/seller/:productId", async (req, res) => {
+const {productId} = req.params
+const updatedData = req.body
+console.log(updatedData)
+const result = await addproductCollection.updateOne(
+  {_id: new ObjectId(productId)},
+  {$set: updatedData}
+)
+res.json(result)
+ })
+
 
 
 
