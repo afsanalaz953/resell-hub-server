@@ -51,6 +51,7 @@ const addproductCollection = db.collection("productCollection");
 const myproductCollection = db.collection("myproduct");
 const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
+const bookingCollections = db.collection("tutorBookingCollections");
 
 //1)for getting productsdata from form
 app.post('/api/seller/products', async(req,res) =>{
@@ -95,6 +96,14 @@ const result = await addproductCollection.updateOne(
 )
 res.json(result)
  })
+
+//  seller manageorders api
+ app.get("/api/seller/orders/:userId", async(req, res)=>{
+    // res.send('hello server running')
+   const {userId} = req.params;
+  const result = await bookingCollections.find({userId}).toArray();
+ res.json(result)
+})
 
 
 
