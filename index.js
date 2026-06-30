@@ -51,7 +51,7 @@ const addproductCollection = db.collection("productCollection");
 const myproductCollection = db.collection("myproduct");
 const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
-const bookingCollections = db.collection("tutorBookingCollections");
+const bookingCollections = db.collection("orderBookingCollections");
 
 //1)for getting productsdata from form
 app.post('/api/seller/products', async(req,res) =>{
@@ -60,8 +60,23 @@ app.post('/api/seller/products', async(req,res) =>{
   res.json(result)
 })
 
-/   //  getting data from mongodatabase for my-tutors page by clicking form
-// userId na dhore data pathano process
+// for productdetails page
+app.get('/api/seller/products/:id', async (req, res) =>{
+const {id} = req.params
+const result = await addproductCollection.findOne({_id: new ObjectId(id)})
+res.json(result) 
+ }); 
+
+// bookingmodal for order
+app.post('/booking',  async (req, res) => {
+  const bookingOrderData = req.body;
+  const result = await bookingCollections .insertOne(bookingOrderData)
+  res.json(result)
+});
+ 
+
+// /   //  getting data from mongodatabase for my-tutors page by clicking form
+// // userId na dhore data pathano process
  app.get('/api/seller/products', async(req, res) => {
   //  const {userId} = req.params;
   //  console.log(userId,"userId with params")
@@ -104,6 +119,7 @@ res.json(result)
   const result = await bookingCollections.find({userId}).toArray();
  res.json(result)
 })
+
 
 
 
