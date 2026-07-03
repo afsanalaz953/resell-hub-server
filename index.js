@@ -53,6 +53,28 @@ const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
 const bookingCollections = db.collection("orderBookingCollections");
 
+// payment api from successpage
+app.post('/api/payment', async(req,res) =>{
+  const paymentData = req.body
+  const result = await paymentCollection.insertOne(paymentData)
+  res.json(result)
+})
+
+app.post('/api/booking', async(req,res) =>{
+  const {price, title, } = req.body;
+  console.log(req.body);
+  const bookingData= {
+    title,
+    price,
+    buyerEmail, 
+    condition,
+    bookingDate:new Date(),
+  };
+  const result = await bookingCollections.insertOne(bookingData)
+  res.json(result)
+})
+// stock update korte hobe
+
 //1)for getting productsdata from form
 app.post('/api/seller/products', async(req,res) =>{
   const productsData = req.body
