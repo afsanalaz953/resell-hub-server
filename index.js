@@ -53,23 +53,47 @@ const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
 const bookingCollections = db.collection("orderBookingCollections");
 
-// payment api from successpage
+// Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
+ app.get("/api/buyer/myorders/:userId", async(req, res)=>{
+    // res.send('hello server running')
+   const {userId} = req.params;
+  const result = await bookingCollections.find({userId}).toArray();
+ res.json(result)
+})
+
+// payment api from successpage thake mongopaymentcollection a phathano
 app.post('/api/payment', async(req,res) =>{
   const paymentData = req.body
   const result = await paymentCollection.insertOne(paymentData)
   res.json(result)
 })
 
-app.post('/api/booking', async(req,res) =>{
-  const {price, title, } = req.body;
+// payment page a data pahathano 1ta 1ta kore
+app.get("/api/buyer/payment", async (req, res) => {
+ try {
+    const { customerEmail } = req.query;  // ✅ query থেকে নিন
+
+    if (!customerEmail) {
+      return res.status(400).json({ error: "customerEmail is required" });
+    }
+
+    // customerEmail দিয়ে payment collection-এ খুঁজুন (সরাসরি ফিল্ড)
+    const result = await paymentCollection.find({ customerEmail }).toArray();
+      res.json(result);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}); 
+
+
+
+app.post('/api/bookings', async(req,res) =>{
+  // const {price, title,userId, status,condition,email } = req.body;
+//  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
+const bookingData = req.body;
   console.log(req.body);
-  const bookingData= {
-    title,
-    price,
-    buyerEmail, 
-    condition,
-    bookingDate:new Date(),
-  };
+  
   const result = await bookingCollections.insertOne(bookingData)
   res.json(result)
 })
