@@ -70,8 +70,8 @@ app.post('/api/payment', async(req,res) =>{
 
 // payment page a data pahathano 1ta 1ta kore
 app.get("/api/buyer/payment", async (req, res) => {
- try {
-    const { customerEmail } = req.query;  // ✅ query থেকে নিন
+  try {
+    const { customerEmail} = req.query;  // ✅ query থেকে নিন
 
     if (!customerEmail) {
       return res.status(400).json({ error: "customerEmail is required" });
@@ -86,10 +86,31 @@ app.get("/api/buyer/payment", async (req, res) => {
   }
 }); 
 
+// 5. Atomically decrease availableStock by 1
 
+ app.patch("/api/products/:id", async (req, res) => {
+const {id} = req.params
+const updatedData = req.body
+console.log(updatedData)
+const result = await addproductCollection.updateOne(
+  {_id: new ObjectId(id)},
+  { $inc: { stock: -1 } }
+)
+res.json(result)
+ })
+
+  // await addproductCollection.updateOne(
+  // //  { _id: new ObjectId(id)},
+  // {title},
+  //    { $inc: { stock: -1 } }
+  // //     [
+  // //   { $set: { availableSlots: { $toInt: "$availableSlots" } } },  // string → number
+  // //   { $set: { availableSlots: { $subtract: ["$availableSlots", 1] } } } // ১ কমানো
+  // // ]
+  //  );
 
 app.post('/api/bookings', async(req,res) =>{
-  // const {price, title,userId, status,condition,email } = req.body;
+ const {price, title,userId, status,condition,_id} = req.body;
 //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
 const bookingData = req.body;
   console.log(req.body);
@@ -113,12 +134,12 @@ const result = await addproductCollection.findOne({_id: new ObjectId(id)})
 res.json(result) 
  }); 
 
-// bookingmodal for order
-app.post('/booking',  async (req, res) => {
-  const bookingOrderData = req.body;
-  const result = await bookingCollections .insertOne(bookingOrderData)
-  res.json(result)
-});
+// // bookingmodal for order
+// app.post('/booking',  async (req, res) => {
+//   const bookingOrderData = req.body;
+//   const result = await bookingCollections .insertOne(bookingOrderData)
+//   res.json(result)
+// });
  
 
 // /   //  getting data from mongodatabase for my-tutors page by clicking form
@@ -158,13 +179,13 @@ const result = await addproductCollection.updateOne(
 res.json(result)
  })
 
-//  seller manageorders api
- app.get("/api/seller/orders/:userId", async(req, res)=>{
-    // res.send('hello server running')
-   const {userId} = req.params;
-  const result = await bookingCollections.find({userId}).toArray();
- res.json(result)
-})
+// //  seller manageorders api
+//  app.get("/api/seller/orders/:userId", async(req, res)=>{
+//     // res.send('hello server running')
+//    const {userId} = req.params;
+//   const result = await bookingCollections.find({userId}).toArray();
+//  res.json(result)
+// })
 
 
 
