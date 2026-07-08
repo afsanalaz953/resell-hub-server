@@ -119,6 +119,27 @@ const bookingData = req.body;
   res.json(result)
 })
 // stock update korte hobe
+// buyerOreder page delete
+   //   // for update bookingdelete 
+ app.patch("/booking/:bookingId", async(req, res) =>{
+const {bookingId} = req.params;
+//  console.log("placeId", id);
+// //  if get id then go to mongodoc for delete query
+// // for particular id selection 
+// const query = {_id : new ObjectId(id)}
+const result = await bookingCollections.updateOne(
+  {_id:new ObjectId(bookingId)},
+{ $set: { status: "cancelled"}}
+)
+// console.log(result);
+res.json(result)
+
+ });
+
+
+
+
+
 
 //1)for getting productsdata from form
 app.post('/api/seller/products', async(req,res) =>{
