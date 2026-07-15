@@ -48,7 +48,7 @@ async function run() {
 // database collection start of momgo
 const db = client.db("resellHub")
 const addproductCollection = db.collection("productCollection");
-const myproductCollection = db.collection("myproduct");
+const SellerOrderCollections = db.collection("orders");
 const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
 const bookingCollections = db.collection("orderBookingCollections");
@@ -155,12 +155,20 @@ const result = await addproductCollection.findOne({_id: new ObjectId(id)})
 res.json(result) 
  }); 
 
-// // bookingmodal for order
-// app.post('/booking',  async (req, res) => {
-//   const bookingOrderData = req.body;
-//   const result = await bookingCollections .insertOne(bookingOrderData)
-//   res.json(result)
-// });
+// buyingmodal for Seller order
+app.post('/api/orders',  async (req, res) => {
+  const buyingOrderData = req.body;
+  console.log(buyingOrderData, "serverOrder")
+  const result = await SellerOrderCollections.insertOne(buyingOrderData)
+  res.json(result)
+});
+// //  seller manageorders api
+ app.get("/api/orders", async(req, res)=>{
+    
+   const { sellerId} = req.query;
+ const result = await SellerOrderCollections.find({ sellerId}).toArray();
+ res.json(result)
+})
  
 
 // /   //  getting data from mongodatabase for my-tutors page by clicking form
