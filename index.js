@@ -87,18 +87,18 @@ app.get("/api/buyer/payment", async (req, res) => {
 }); 
 
 // 5. Atomically decrease availableStock by 1
-
- app.patch("/api/products/:id", async (req, res) => {
-const {id} = req.params
-const updatedData = req.body
-console.log(updatedData)
-const result = await addproductCollection.updateOne(
-  {_id: new ObjectId(id)},
-  { $inc: { stock: -1 } }
-)
-res.json(result)
- })
-
+// stock kome jasse start
+//  app.patch("/api/products/:id", async (req, res) => {
+// const {id} = req.params
+// const updatedData = req.body
+// console.log(updatedData)
+// const result = await addproductCollection.updateOne(
+//   {_id: new ObjectId(id)},
+//   { $inc: { stock: -1 } }
+// )
+// res.json(result)
+//  })
+// stock kome jasse end
   // await addproductCollection.updateOne(
   // //  { _id: new ObjectId(id)},
   // {title},
@@ -182,6 +182,7 @@ res.json(result);
 console.log( "Allmyproducts in server", result)
  })
 
+
  // // productId 
 // param thake productId dhore for delete
 app.delete("/api/seller/:productId", async(req, res) =>{
@@ -207,6 +208,22 @@ const result = await addproductCollection.updateOne(
 )
 res.json(result)
  })
+//  Admin products update for pending and approved
+app.patch("/api/products/:adminproductid", async (req, res) => {
+const {adminproductid} = req.params;
+const updatedAdminProductData = req.body
+console.log(updatedAdminProductData, "adminupdatedproduct")
+
+ const filter = {_id: new ObjectId(adminproductid)};
+ const updatedAdminStatus = {
+ $set: {
+  status: updatedAdminProductData.status
+  }
+}
+const result = await addproductCollection.updateOne(filter,updatedAdminStatus) 
+res.json(result);
+ })
+
 
 // //  seller manageorders api
 //  app.get("/api/seller/orders/:userId", async(req, res)=>{
