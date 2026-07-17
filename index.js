@@ -224,6 +224,17 @@ const result = await addproductCollection.updateOne(filter,updatedAdminStatus)
 res.json(result);
  })
 
+//  admin rejected power
+app.delete("/api/admin/:rejectedproductid", async(req, res) =>{
+const {rejectedproductid} = req.params;
+
+// // //  if get id then go to mongodoc for delete query
+// // // for particular id selection 
+//  const query = {_id : new ObjectId(rejectedproductid)}
+ const result = await addproductCollection.deleteOne({_id:new ObjectId(rejectedproductid)});
+
+res.json(result)
+ })
 
 // //  seller manageorders api
 //  app.get("/api/seller/orders/:userId", async(req, res)=>{
