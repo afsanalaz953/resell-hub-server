@@ -236,18 +236,14 @@ const {rejectedproductid} = req.params;
 
 res.json(result)
  })
-// //  app.get("/api/orders", async(req, res)=>{
-    
-//    const { sellerId} = req.query;
-//  const result = await SellerOrderCollections.find({ sellerId}).toArray();
-//  res.json(result)
-// })
 
-//  admin manageUser page api
+
+// //  admin manageUser page api, query thak enite hobe whole user, akta user 
+// means userId nile hobe na. $ne=not equal
  app.get("/api/admin/user", async(req, res)=>{
     // res.send('hello server running')
-   const {userId} = req.query;
-  const result = await userCollection.find({userId}).toArray();
+  //  const {userId} = req.query;
+  const result = await userCollection.find({ role: { $ne: 'admin'}}).toArray();
  res.json(result)
 })
 
