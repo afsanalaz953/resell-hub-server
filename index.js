@@ -52,6 +52,7 @@ const SellerOrderCollections = db.collection("orders");
 const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
 const bookingCollections = db.collection("orderBookingCollections");
+const userCollection = db.collection("user");
 
 // Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
  app.get("/api/buyer/myorders/:userId", async(req, res)=>{
@@ -230,11 +231,25 @@ const {rejectedproductid} = req.params;
 
 // // //  if get id then go to mongodoc for delete query
 // // // for particular id selection 
-//  const query = {_id : new ObjectId(rejectedproductid)}
+//  const query = {_id : new ObjectId()}
  const result = await addproductCollection.deleteOne({_id:new ObjectId(rejectedproductid)});
 
 res.json(result)
  })
+// //  app.get("/api/orders", async(req, res)=>{
+    
+//    const { sellerId} = req.query;
+//  const result = await SellerOrderCollections.find({ sellerId}).toArray();
+//  res.json(result)
+// })
+
+//  admin manageUser page api
+ app.get("/api/admin/user", async(req, res)=>{
+    // res.send('hello server running')
+   const {userId} = req.query;
+  const result = await userCollection.find({userId}).toArray();
+ res.json(result)
+})
 
 // //  seller manageorders api
 //  app.get("/api/seller/orders/:userId", async(req, res)=>{
