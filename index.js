@@ -166,7 +166,7 @@ app.post('/api/orders',  async (req, res) => {
 // //  seller manageorders api
  app.get("/api/orders", async(req, res)=>{
     
-   const { sellerId} = req.query;
+   const {sellerId} = req.query;
  const result = await SellerOrderCollections.find({ sellerId}).toArray();
  res.json(result)
 })
@@ -246,14 +246,41 @@ res.json(result)
   const result = await userCollection.find({ role: { $ne: 'admin'}}).toArray();
  res.json(result)
 })
+// true বা false পাঠাবে ফ্রন্টএন্ড থেকে
+// admin user block power
+app.patch("/api/admin/user/block/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBlocked } = req.body; 
 
-// //  seller manageorders api
-//  app.get("/api/seller/orders/:userId", async(req, res)=>{
-//     // res.send('hello server running')
-//    const {userId} = req.params;
-//   const result = await bookingCollections.find({userId}).toArray();
-//  res.json(result)
-// })
+    // MongoDB-তে আপডেট করো
+    const result = await userCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { isBlocked: isBlocked } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "User status updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// //  Admin manageorders api
+ app.get("/api/admin/allorders", async(req, res)=>{
+      const {sellerId} = req.query;
+ const result = await SellerOrderCollections.find({ sellerId})
+ .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
+ .toArray();
+ res.json(result)
+})
+
+
+
 
 
 
