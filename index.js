@@ -54,13 +54,7 @@ const paymentCollection = db.collection("payment");
 const bookingCollections = db.collection("orderBookingCollections");
 const userCollection = db.collection("user");
 
-// Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
- app.get("/api/buyer/myorders/:userId", async(req, res)=>{
-    // res.send('hello server running')
-   const {userId} = req.params;
-  const result = await bookingCollections.find({userId}).toArray();
- res.json(result)
-})
+
 
 // payment api from successpage thake mongopaymentcollection a phathano
 app.post('/api/payment', async(req,res) =>{
@@ -110,8 +104,10 @@ app.get("/api/buyer/payment", async (req, res) => {
   // // ]
   //  );
 
+  // for buyer
+// bookingCollection a data dukha from buyingModal-stripe-success
 app.post('/api/bookings', async(req,res) =>{
- const {price, title,userId, status,condition,_id} = req.body;
+ const {price, title,userId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
 //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
 const bookingData = req.body;
   console.log(req.body);
@@ -119,6 +115,19 @@ const bookingData = req.body;
   const result = await bookingCollections.insertOne(bookingData)
   res.json(result)
 })
+// Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
+ app.get("/api/buyer/myorders/:email", async(req, res)=>{
+    // res.send('hello server running')
+   const {email} = req.params;
+   console.log('buyerordersIdemail', email)
+const result = await bookingCollections.find({customerEmail: email}).toArray();
+ res.json(result)
+})
+
+
+
+
+
 // stock update korte hobe
 // buyerOreder page delete
    //   // for update bookingdelete 
@@ -272,9 +281,9 @@ app.patch("/api/admin/user/block/:id", async (req, res) => {
 
 // //  Admin manageorders api
  app.get("/api/admin/allorders", async(req, res)=>{
-      const {sellerId} = req.query;
- const result = await SellerOrderCollections.find({ sellerId})
- .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
+  
+ const result = await SellerOrderCollections.find()
+//  .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
  .toArray();
  res.json(result)
 })
