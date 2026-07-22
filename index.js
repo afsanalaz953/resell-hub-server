@@ -124,6 +124,7 @@ const result = await bookingCollections.find({customerEmail: email}).toArray();
  res.json(result)
 })
 
+ 
 
 
 
@@ -183,14 +184,44 @@ app.post('/api/orders',  async (req, res) => {
 
 // /   //  getting data from mongodatabase for my-tutors page by clicking form
 // // userId na dhore data pathano process
- app.get('/api/seller/products', async(req, res) => {
-  //  const {userId} = req.params;
-  //  console.log(userId,"userId with params")
+//  Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
+//  app.get("/api/buyer/myorders/:email", async(req, res)=>{
+//     // res.send('hello server running')
+//    const {email} = req.params;
+//    console.log('buyerordersIdemail', email)
+// const result = await bookingCollections.find({customerEmail: email}).toArray();
+//  res.json(result)
+// })
 
-const result= await addproductCollection.find().toArray()
+
+// const result= await addproductCollection.find({sellerId: userId}).toArray()
+// res.json(result);
+// console.log( "Allmyproducts in server", result)
+//  })
+app.get('/api/seller/products', async(req, res) => {
+  const {sellerId} = req.query;
+ console.log("sellerId for sellermyproduct", sellerId);
+
+const result= await addproductCollection.find({sellerId : sellerId}).toArray()
+// const myProducts = await addproductCollection .filter(
+//     (product) => product.sellerId === sellerId
+//   );
 res.json(result);
 console.log( "Allmyproducts in server", result)
+
  })
+//  try {
+//     const { userId } = req.params;
+//     console.log("Searching for sellerId:", userId); // কনসোলে চেক করুন
+//     const products = await Product.find({ sellerId: userId }); // ফিল্ডের নাম sellerId
+//     console.log("Found products:", products); // কয়টি পেলেন দেখুন
+//     res.status(200).json(products); // সবসময় অ্যারে পাঠান
+//   } catch (error) {
+//     res.status(500).json([]); // error হলেও খালি অ্যারে পাঠান
+//   }
+// });
+
+
 
 
  // // productId 
