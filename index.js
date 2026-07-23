@@ -155,9 +155,53 @@ res.json(result)
 //1)for getting productsdata from form
 app.post('/api/seller/products', async(req,res) =>{
   const productsData = req.body
-  const result = await addproductCollection .insertOne(productsData)
+  const result = await addproductCollection.insertOne(productsData)
   res.json(result)
 })
+
+// // সব প্রোডাক্টের জন্য in product page admin product page
+app.get('/api/seller/products/all', async (req, res) => {
+  const result = await addproductCollection.find({status: "Approved"}).toArray();
+  res.json(result);
+});
+
+app.get('/api/seller/products', async (req, res) =>{
+const {title} = req.query;
+const result = await addproductCollection.find({title}).toArray();
+res.json(result) 
+ }); 
+///////
+// For admin all products 
+app.get('/api/admin/products/all', async (req, res) => {
+  const result = await addproductCollection.find({}).toArray();
+  res.json(result);
+});
+app.get('/api/admin/products', async (req, res) =>{
+const {title} = req.query;
+const result = await addproductCollection.find({title}).toArray();
+res.json(result) 
+ }); 
+
+
+
+
+
+// for pagination
+// app.get('/api/seller/products', async (req, res) => {
+//   const { title, page = 1, limit = 10 } = req.query;
+//   let filter = {};
+//   if (title) filter.title = { $regex: title, $options: 'i' }; // case-insensitive search
+
+//   const skip = (parseInt(page) - 1) * parseInt(limit);
+//   const result = await addproductCollection
+//     .find(filter)
+//     .skip(skip)
+//     .limit(parseInt(limit))
+//     .toArray();
+//   res.json(result);
+// });
+
+
 
 // for productdetails page
 app.get('/api/seller/products/:id', async (req, res) =>{
