@@ -147,10 +147,10 @@ res.json(result)
 
  });
 
-
-
-
-
+//For pagination rules
+//  1)TotalPage=Math.ceil(totaldata/limit)=increment+1
+// or TotalPage=Math.flore(totaldata/limit)=decrement-1
+// 2)skip= (pageno.-1)*limit(10)=ans
 
 //1)for getting productsdata from form
 app.post('/api/seller/products', async(req,res) =>{
@@ -159,17 +159,31 @@ app.post('/api/seller/products', async(req,res) =>{
   res.json(result)
 })
 
-// // সব প্রোডাক্টের জন্য in product page admin product page
-app.get('/api/seller/products/all', async (req, res) => {
-  const result = await addproductCollection.find({status: "Approved"}).toArray();
-  res.json(result);
-});
+// // সব প্রোডাক্টের জন্য in  product page
+// app.get('/api/seller/products', async (req, res) => {
+//   const result = await addproductCollection.find({status: "Approved"}).toArray();
+//   res.json(result);
+// });
 
+// app.get('/api/seller/products', async (req, res) =>{
+// const {title} = req.query;
+// const result = await addproductCollection.find({title}).toArray();
+// res.json(result) 
+//  }); 
+//  pagination start
 app.get('/api/seller/products', async (req, res) =>{
-const {title} = req.query;
-const result = await addproductCollection.find({title}).toArray();
-res.json(result) 
- }); 
+  const limit = Number(req.query.limit)|| 8;
+  const page = Number(req.query.page)|| 1;
+
+  total_data = await addproductCollection.countDocuments()
+total_page = Math.ceil(total_data/limit)
+
+const skip = (page-1) *limit
+
+const data = await addproductCollection.find({status: "Approved"}).skip(skip).limit(limit).toArray();
+res.json({total_page,page,skip, data}) 
+ });
+
 ///////
 // For admin all products 
 app.get('/api/admin/products/all', async (req, res) => {
