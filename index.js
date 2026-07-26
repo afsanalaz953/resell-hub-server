@@ -170,7 +170,7 @@ app.post('/api/seller/products', async(req,res) =>{
 // const result = await addproductCollection.find({title}).toArray();
 // res.json(result) 
 //  }); 
-//  pagination start
+//  pagination start for productpage
 app.get('/api/seller/products', async (req, res) =>{
   const limit = Number(req.query.limit)|| 8;
   const page = Number(req.query.page)|| 1;
@@ -196,27 +196,6 @@ const result = await addproductCollection.find({title}).toArray();
 res.json(result) 
  }); 
 
-
-
-
-
-// for pagination
-// app.get('/api/seller/products', async (req, res) => {
-//   const { title, page = 1, limit = 10 } = req.query;
-//   let filter = {};
-//   if (title) filter.title = { $regex: title, $options: 'i' }; // case-insensitive search
-
-//   const skip = (parseInt(page) - 1) * parseInt(limit);
-//   const result = await addproductCollection
-//     .find(filter)
-//     .skip(skip)
-//     .limit(parseInt(limit))
-//     .toArray();
-//   res.json(result);
-// });
-
-
-
 // for productdetails page
 app.get('/api/seller/products/:id', async (req, res) =>{
 const {id} = req.params
@@ -229,34 +208,112 @@ app.post('/api/orders',  async (req, res) => {
   const buyingOrderData = req.body;
   console.log(buyingOrderData, "serverOrder")
   const result = await SellerOrderCollections.insertOne(buyingOrderData)
-  res.json(result)
+  res.json(result);
+  console.log( "Allordersproducts in server", result)
 });
 // //  seller manageorders api
  app.get("/api/orders", async(req, res)=>{
     
    const {sellerId} = req.query;
- const result = await SellerOrderCollections.find({ sellerId}).toArray();
+ const result = await SellerOrderCollections.find({sellerId}).toArray();
  res.json(result)
 })
- 
+// sellermanageorder updates for Action and Status--- 
+// ✅ PATCH route to update order status
+ app.patch("/api/orders/:orderId", async (req, res) => {
+const {orderId} = req.params
+const orderUpdatedData = req.body
+console.log(orderUpdatedData, "orderActionButton")
+const filter = {_id: new ObjectId(orderId)};
+ const updatedOrderStatus = {
+ $set: {
+  status: orderUpdatedData.status
+  }
+}
 
-// /   //  getting data from mongodatabase for my-tutors page by clicking form
-// // userId na dhore data pathano process
-//  Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
-//  app.get("/api/buyer/myorders/:email", async(req, res)=>{
-//     // res.send('hello server running')
-//    const {email} = req.params;
-//    console.log('buyerordersIdemail', email)
-// const result = await bookingCollections.find({customerEmail: email}).toArray();
-//  res.json(result)
-// })
+const result = await SellerOrderCollections.updateOne(filter,updatedOrderStatus)
+  
 
+res.json(result)
+ })
+//  Admin products update for pending and approved
+// app.patch("/api/products/:adminproductid", async (req, res) => {
+// const {adminproductid} = req.params;
+// const updatedAdminProductData = req.body
+// console.log(updatedAdminProductData, "adminupdatedproduct")
 
-// const result= await addproductCollection.find({sellerId: userId}).toArray()
+//  const filter = {_id: new ObjectId(adminproductid)};
+//  const updatedAdminStatus = {
+//  $set: {
+//   status: updatedAdminProductData.status
+//   }
+// }
+// const result = await addproductCollection.updateOne(filter,updatedAdminStatus) 
 // res.json(result);
-// console.log( "Allmyproducts in server", result)
 //  })
-app.get('/api/seller/products', async(req, res) => {
+
+//  seller order rejected power
+app.delete("/api/orders/:rejectedorderid", async(req, res) =>{
+const {rejectedorderid} = req.params;
+
+// // //  if get id then go to mongodoc for delete query
+// // // for particular id selection 
+//  const query = {_id : new ObjectId()}
+ const result = await SellerOrderCollections.deleteOne({_id:new ObjectId(rejectedorderid)});
+
+res.json(result)
+ })
+
+
+
+// selelrorder update end
+// sellerorder status update start
+
+// GET all orders (with optional status filter)
+app.get('/api/orders', async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status ? { status } : {};
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PATCH update order status
+app.patch('/api/orders/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    // শুধুমাত্র অনুমোদিত স্ট্যাটাসগুলো গ্রহণ করি
+    if (!['pending', 'canceled', 'delivered'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { status },
+      { new: true } // আপডেট হওয়া ডকুমেন্টটি রিটার্ন করবে
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+// ststaus update end
+
+
+app.get('/api/seller/productlist', async(req, res) => {
   const {sellerId} = req.query;
  console.log("sellerId for sellermyproduct", sellerId);
 
