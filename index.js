@@ -312,19 +312,74 @@ app.patch('/api/orders/:orderId', async (req, res) => {
 
 // ststaus update end
 
+// my id
+// app.get('/api/seller/productlist', async(req, res) => {
+//   const {sellerId} = req.query;
+//  console.log("sellerId for sellermyproduct", sellerId);
 
-app.get('/api/seller/productlist', async(req, res) => {
-  const {sellerId} = req.query;
- console.log("sellerId for sellermyproduct", sellerId);
+// const result= await addproductCollection.find({sellerId : sellerId}).toArray()
+// // const myProducts = await addproductCollection .filter(
+// //     (product) => product.sellerId === sellerId
+// //   );
+// res.json(result);
+// console.log( "Allmyproducts in server", result)
 
-const result= await addproductCollection.find({sellerId : sellerId}).toArray()
-// const myProducts = await addproductCollection .filter(
-//     (product) => product.sellerId === sellerId
-//   );
-res.json(result);
-console.log( "Allmyproducts in server", result)
+//  })
+// my id 
 
- })
+// for product search of seller
+//  
+// app.get('/api/seller/products', async (req, res) => {
+//   console.log("🔍 Full query params:", req.query);
+//   try {
+//     const { search} = req.query;
+//     let query = {};   // ← বেস কোয়েরি অবজেক্ট
+
+//     // নাম অনুযায়ী সার্চ
+//     if (search) {
+//       query.title = { $regex: search, $options: 'i' };
+//      console.log("📝 Search query:", query);
+//   }
+//    // কোয়েরি এক্সিকিউট
+//     const result = await addproductCollection.find(query).toArray();
+//     console.log("✅ Found:", result.length, "selelrProductssearch");
+//    res.json(result);   // সব সময় JSON রিটার্ন করবে
+//   } catch (error) {
+//    console.error('Error in /tutors:', error);
+//      res.status(500).json({ error: 'Internal server error' });
+//    }
+// });
+// code for seaech new---
+// GET /api/seller/productlist
+app.get('/api/seller/productlist', async (req, res) => {
+  try {
+    const { sellerId, search } = req.query;
+
+    // ✅ ফিক্স ৫: sellerId বাধ্যতামূলক
+    if (!sellerId) {
+      return res.status(400).json({ error: 'sellerId required' });
+    }
+
+    const filter = { sellerId: sellerId };
+
+    // ✅ ফিক্স ৬: search থাকলে regex দিয়ে title ফিল্টার (স্পেশাল ক্যারেক্টার escape)
+    if (search) {
+      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.title = { $regex: safeSearch, $options: 'i' };
+    }
+
+    const products = await addproductCollection.find(filter).toArray();
+    res.json(products);
+  } catch (error) {
+    console.error('API error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+////
+
+
+
 //  try {
 //     const { userId } = req.params;
 //     console.log("Searching for sellerId:", userId); // কনসোলে চেক করুন
