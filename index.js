@@ -3,7 +3,7 @@ const dns = require('node:dns');
 // // Set custom DNS servers (Google DNS)
  dns.setServers(['8.8.8.8', '8.8.4.4']);
 
-
+// const { ObjectId } = require('mongodb');
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -204,7 +204,7 @@ res.json(result)
  }); 
 
 // buyingmodal for Seller order
-app.post('/api/orders',  async (req, res) => {
+app.post('/api/orders', async (req, res) => {
   const buyingOrderData = req.body;
   console.log(buyingOrderData, "serverOrder")
   const result = await SellerOrderCollections.insertOne(buyingOrderData)
@@ -236,30 +236,15 @@ const result = await SellerOrderCollections.updateOne(filter,updatedOrderStatus)
 
 res.json(result)
  })
-//  Admin products update for pending and approved
-// app.patch("/api/products/:adminproductid", async (req, res) => {
-// const {adminproductid} = req.params;
-// const updatedAdminProductData = req.body
-// console.log(updatedAdminProductData, "adminupdatedproduct")
-
-//  const filter = {_id: new ObjectId(adminproductid)};
-//  const updatedAdminStatus = {
-//  $set: {
-//   status: updatedAdminProductData.status
-//   }
-// }
-// const result = await addproductCollection.updateOne(filter,updatedAdminStatus) 
-// res.json(result);
-//  })
 
 //  seller order rejected power
-app.delete("/api/orders/:rejectedorderid", async(req, res) =>{
-const {rejectedorderid} = req.params;
+app.delete("/api/orders/:id", async(req, res) =>{
+const {id} = req.params
 
 // // //  if get id then go to mongodoc for delete query
 // // // for particular id selection 
 //  const query = {_id : new ObjectId()}
- const result = await SellerOrderCollections.deleteOne({_id:new ObjectId(rejectedorderid)});
+ const result = await SellerOrderCollections.deleteOne({_id:new ObjectId(id)});
 
 res.json(result)
  })
@@ -378,23 +363,7 @@ app.get('/api/seller/productlist', async (req, res) => {
 
 ////
 
-
-
-//  try {
-//     const { userId } = req.params;
-//     console.log("Searching for sellerId:", userId); // কনসোলে চেক করুন
-//     const products = await Product.find({ sellerId: userId }); // ফিল্ডের নাম sellerId
-//     console.log("Found products:", products); // কয়টি পেলেন দেখুন
-//     res.status(200).json(products); // সবসময় অ্যারে পাঠান
-//   } catch (error) {
-//     res.status(500).json([]); // error হলেও খালি অ্যারে পাঠান
-//   }
-// });
-
-
-
-
- // // productId 
+// productId 
 // param thake productId dhore for delete
 app.delete("/api/seller/:productId", async(req, res) =>{
 const {productId} = req.params;
@@ -419,6 +388,51 @@ const result = await addproductCollection.updateOne(
 )
 res.json(result)
  })
+
+// analytics for seller sales
+// const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// const generateMonthlySales = () => {
+//   return months.map((month, index) => ({
+//     month,
+//     sales: Math.floor(Math.random() * 20000) + 5000, // 5k-25k
+//     orders: Math.floor(Math.random() * 300) + 100,
+//   }));
+// };
+
+// const topProducts = [
+//   { name: 'Wireless Headphones', sales: 12450, quantity: 245 },
+//   { name: 'Smart Watch', sales: 9800, quantity: 180 },
+//   { name: 'USB-C Hub', sales: 7600, quantity: 320 },
+//   { name: 'Portable SSD', sales: 6300, quantity: 95 },
+//   { name: 'Bluetooth Speaker', sales: 5100, quantity: 210 },
+// ];
+
+// // ---------- Routes ----------
+// app.get('/api/sales-summary', (req, res) => {
+//   const totalSales = topProducts.reduce((sum, p) => sum + p.sales, 0);
+//   const totalOrders = topProducts.reduce((sum, p) => sum + p.quantity, 0);
+//   res.json({
+//     totalSales,
+//     totalOrders,
+//     averageOrderValue: Math.round(totalSales / totalOrders),
+//   });
+// });
+
+// app.get('/api/sales-trend', (req, res) => {
+//   res.json(generateMonthlySales());
+// });
+
+// app.get('/api/top-products', (req, res) => {
+//   // sort by sales descending
+//   const sorted = [...topProducts].sort((a, b) => b.sales - a.sales);
+//   res.json(sorted);
+// });
+
+
+
+
+
 //  Admin products update for pending and approved
 app.patch("/api/products/:adminproductid", async (req, res) => {
 const {adminproductid} = req.params;
@@ -458,27 +472,80 @@ res.json(result)
 })
 // true বা false পাঠাবে ফ্রন্টএন্ড থেকে
 // admin user block power
-app.patch("/api/admin/user/block/:id", async (req, res) => {
+// মিডলওয়্যার: ব্লক চেক করা (এটি এখানে থাকবে, রাউটের ভেতরে না)
+// const checkBlocked = (req, res, next) => {
+//   if (req.user && req.user.isBlocked) {
+//     return res.status(403).json({ message: 'আপনি ব্লক করা হয়েছেন, কাজ করতে পারবেন না' });
+//   }
+//   next();
+// };
+// অ্যাডমিন ইউজার ব্লক/আনব্লক করার রাউট
+app.patch("/api/admin/user/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { isBlocked } = req.body; 
+    const { isBlocked } = req.body; // ফ্রন্টএন্ড থেকে true/false আসবে
 
-    // MongoDB-তে আপডেট করো
+    // MongoDB-তে আপডেট করো (এখানে user ভেরিয়েবল লাগবে না, ডাইরেক্ট আপডেট)
     const result = await userCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { isBlocked: isBlocked } }
     );
 
+    // যদি ইউজার খুঁজে না পাওয়া যায়
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: "User status updated successfully" });
+    // সফল হলে সঠিক মেসেজ পাঠাও
+    res.status(200).json({ 
+      message: `ইউজার ${isBlocked ? 'ব্লক' : 'আনব্লক'} করা হয়েছে` 
+    });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 });
+
+
+// app.patch("/api/admin/user/:id", async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { isBlocked } = req.body; 
+
+//     // MongoDB-তে আপডেট করো
+//     const result = await userCollection.updateOne(
+//       { _id: new ObjectId(id) },
+//       { $set: { isBlocked: isBlocked } }
+//     );
+
+//     if (result.matchedCount === 0) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     res.status(200).json({ message: "User status updated successfully" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+//   try
+//   {
+// user.isBlocked = !user.isBlocked; // টগল
+//     await user.save();
+//     res.json({ message: `ইউজার ${user.isBlocked ? 'ব্লক' : 'আনব্লক'} করা হয়েছে`, user });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+
+// const checkBlocked = (req, res, next) => {
+//   if (req.user && req.user.isBlocked) {
+//     return res.status(403).json({ message: 'আপনি ব্লক করা হয়েছেন, কাজ করতে পারবেন না' });
+//   }
+//   next();
+// };
+
+
+// });
 
 // //  Admin manageorders api
  app.get("/api/admin/allorders", async(req, res)=>{
@@ -489,6 +556,36 @@ app.patch("/api/admin/user/block/:id", async (req, res) => {
  res.json(result)
 })
 
+//  Admin allorders update for pending and approved
+app.patch("/api/admin/allorders/:adminorderid", async (req, res) => {
+const {adminorderid} = req.params
+const updatedAdminOrderData = req.body
+console.log(updatedAdminOrderData, "adminupdatedorder")
+
+
+ const filter = {_id: new ObjectId(adminorderid)};
+//  const filter = { _id: adminorderid };
+ console.log (adminorderid, "order")
+ const updatedAdminOrderStatus = {
+ $set: {
+  status: updatedAdminOrderData.status
+  }
+}
+const result = await  SellerOrderCollections.updateOne(filter,updatedAdminOrderStatus) 
+res.json(result);
+ })
+//  order deleted
+app.delete("/api/admin/allorders/:id", async(req, res) =>{
+const {id} = req.params
+console.log(id, "deleteid")
+
+// // //  if get id then go to mongodoc for delete query
+// // // for particular id selection 
+//  const query = {_id : new ObjectId()}
+ const result = await SellerOrderCollections.deleteOne({_id:new ObjectId(id)});
+
+res.json(result)
+ })
 
 
 
