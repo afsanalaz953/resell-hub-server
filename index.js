@@ -53,6 +53,7 @@ const wishlistCollection = db.collection("wishlist");
 const paymentCollection = db.collection("payment");
 const bookingCollections = db.collection("orderBookingCollections");
 const userCollection = db.collection("user");
+const wishlistCollections = db.collection("wishlist");
 
 
 
@@ -125,10 +126,6 @@ const result = await bookingCollections.find({customerEmail: email}).toArray();
 })
 
  
-
-
-
-
 // stock update korte hobe
 // buyerOreder page delete
    //   // for update bookingdelete 
@@ -146,6 +143,20 @@ const result = await bookingCollections.updateOne(
 res.json(result)
 
  });
+
+// // buyer updated profile
+//  app.patch("/api/buyerprofile/:userId", async (req, res) => {
+// const {userId} = req.params
+// const updatedProfile = req.body
+// console.log(updatedProfile)
+// const result = await userCollection.updateOne(
+//   {_id: new ObjectId(userId)},
+//   {$set: updatedProfile}
+// )
+// res.json(result)
+//  })
+
+
 
 //For pagination rules
 //  1)TotalPage=Math.ceil(totaldata/limit)=increment+1
@@ -587,6 +598,38 @@ console.log(id, "deleteid")
 res.json(result)
  })
 
+//  for buyer wishlist 
+app.post('/api/wishlist', async(req,res) =>{
+ const { productData, productId} = req.body;
+//  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
+const wishlistData = req.body;
+  console.log(wishlistData, "buyer wishData");
+  
+  const result = await wishlistCollections.insertOne(wishlistData)
+  res.json(result)
+})
+// Buyer wishlist page api. 1ta 1ta kore data phathano mongo thake
+ app.get("/api/wishlist", async(req, res)=>{
+    // res.send('hello server running')
+   const {buyerId} = req.params;
+  //  const {productId} =req.body;
+  //  const {productId} = productData._id;
+   console.log('buyerwishlist', buyerId)
+const result = await wishlistCollections.find({buyerId}).toArray();
+ res.json(result)
+})
+// wishlist delete
+app.delete("/api/wishlist/:id", async(req, res) =>{
+const {id} = req.params;
+console.log(req.params, "wishlistdeleteid")
+
+// // //  if get id then go to mongodoc for delete query
+// // // for particular id selection 
+//  const query = {_id : new ObjectId()}
+ const result = await wishlistCollections.deleteOne({_id:new ObjectId(id)});
+
+res.json(result)
+ })
 
 
 
