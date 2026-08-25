@@ -3,6 +3,7 @@ const dns = require('node:dns');
 // // Set custom DNS servers (Google DNS)
  dns.setServers(['8.8.8.8', '8.8.4.4']);
 
+
 // const { ObjectId } = require('mongodb');
 const express = require('express');
 const app = express();
@@ -57,24 +58,52 @@ const wishlistCollections = db.collection("wishlist");
 
 
 
-// payment api from successpage thake mongopaymentcollection a phathano
-app.post('/api/payment', async(req,res) =>{
-  const paymentData = req.body
-  const result = await paymentCollection.insertOne(paymentData)
-  res.json(result)
-})
+
+app.post("/api/payments", async (req, res) => {
+  try {
+    const paymentData = req.body;
+    console.log(paymentData, 'serverbuyerPaymentData');
+
+    // ✅ ভ্যালিডেশন (চেক করুন sessionId আছে কিনা, নাহলে ডুপ্লিকেট এড়াতে)
+    if (!paymentData.sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+console.log(paymentData.sessionId, "paymentId")
+ // ডুপ্লিকেট চেক (যদিও unique index থাকলেও এটি optional)
+    const existing = await paymentCollection.findOne({ sessionId: paymentData.sessionId });
+    if (existing) {
+      return res.status(409).json({ error: 'Payment already exists' });
+    }
+
+    const result = await paymentCollection.insertOne(paymentData);
+  //   //  res.json(result)
+  //   // ✅ সফল হলে রেসপন্স পাঠান
+    res.status(201).json(result);
+    
+  } catch (error) {
+  // //   // ❌ এরর হলেও কিন্তু রেসপন্স পাঠাতে হবে, নাহলে ক্লায়েন্ট হ্যাং করবে!
+    console.error('❌ Payment save error:', error.message);
+    
+  // //   // ডুপ্লিকেট এরর (E11000) হ্যান্ডেল করুন
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'Payment already exists' });
+    }
+    
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // payment page a data pahathano 1ta 1ta kore
 app.get("/api/buyer/payment", async (req, res) => {
   try {
-    const { customerEmail} = req.query;  // ✅ query থেকে নিন
+    const { buyerEmail} = req.query;  // ✅ query থেকে নিন
 
-    if (!customerEmail) {
+    if (!buyerEmail) {
       return res.status(400).json({ error: "customerEmail is required" });
     }
 
     // customerEmail দিয়ে payment collection-এ খুঁজুন (সরাসরি ফিল্ড)
-    const result = await paymentCollection.find({ customerEmail }).toArray();
+    const result = await paymentCollection.find({ buyerEmail }).toArray();
       res.json(result);
   } catch (error) {
     console.error("Error fetching payments:", error);
@@ -107,21 +136,21 @@ app.get("/api/buyer/payment", async (req, res) => {
 
   // for buyer
 // bookingCollection a data dukha from buyingModal-stripe-success
-app.post('/api/bookings', async(req,res) =>{
- const {price, title,userId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
-//  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
-const bookingData = req.body;
-  console.log(req.body);
+// app.post('/api/bookings', async(req,res) =>{
+//  const {price, title,userId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
+// //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
+// const bookingData = req.body;
+//   console.log(req.body);
   
-  const result = await bookingCollections.insertOne(bookingData)
-  res.json(result)
-})
+//   const result = await bookingCollections.insertOne(bookingData)
+//   res.json(result)
+// })
 // Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
  app.get("/api/buyer/myorders/:email", async(req, res)=>{
     // res.send('hello server running')
    const {email} = req.params;
    console.log('buyerordersIdemail', email)
-const result = await bookingCollections.find({customerEmail: email}).toArray();
+const result = await bookingCollections.find({buyerEmail: email}).toArray();
  res.json(result)
 })
 
@@ -214,14 +243,14 @@ const result = await addproductCollection.findOne({_id: new ObjectId(id)})
 res.json(result) 
  }); 
 
-// buyingmodal for Seller order
-app.post('/api/orders', async (req, res) => {
-  const buyingOrderData = req.body;
-  console.log(buyingOrderData, "serverOrder")
-  const result = await SellerOrderCollections.insertOne(buyingOrderData)
-  res.json(result);
-  console.log( "Allordersproducts in server", result)
-});
+// buyingmodal for Seller order(working)
+// app.post('/api/orders', async (req, res) => {
+//   const buyingOrderData = req.body;
+//   console.log(buyingOrderData, "serverOrder")
+//   const result = await SellerOrderCollections.insertOne(buyingOrderData)
+//   res.json(result);
+//   console.log( "Allordersproducts in server", result)
+// });
 // //  seller manageorders api
  app.get("/api/orders", async(req, res)=>{
     
@@ -478,8 +507,29 @@ res.json(result)
  app.get("/api/admin/user", async(req, res)=>{
     // res.send('hello server running')
   //  const {userId} = req.query;
-  const result = await userCollection.find({ role: { $ne: 'admin'}}).toArray();
- res.json(result)
+//   const result = await userCollection.find({ role: { $ne: 'admin'}}).toArray();
+//  res.json(result)
+  try {
+    const { search } = req.query; // কুয়েরি থেকে search নিন
+
+    let filter = { role: { $ne: 'admin' } }; // অ্যাডমিন বাদ
+
+    // যদি search থাকে, তাহলে নাম বা ইমেইলে খুঁজুন
+    if (search && search.trim() !== '') {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const result = await userCollection.find(filter).toArray();
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+
+
 })
 // true বা false পাঠাবে ফ্রন্টএন্ড থেকে
 // admin user block power
@@ -499,7 +549,11 @@ app.patch("/api/admin/user/:id", async (req, res) => {
     // MongoDB-তে আপডেট করো (এখানে user ভেরিয়েবল লাগবে না, ডাইরেক্ট আপডেট)
     const result = await userCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { isBlocked: isBlocked } }
+      { $set: { isBlocked: isBlocked, 
+   status: isBlocked ? 'blocked' : 'active', 
+
+      } 
+    }
     );
 
     // যদি ইউজার খুঁজে না পাওয়া যায়
