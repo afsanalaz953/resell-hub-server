@@ -136,15 +136,16 @@ app.get("/api/buyer/payment", async (req, res) => {
 
   // for buyer
 // bookingCollection a data dukha from buyingModal-stripe-success
-// app.post('/api/bookings', async(req,res) =>{
-//  const {price, title,userId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
-// //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
-// const bookingData = req.body;
-//   console.log(req.body);
+app.post('/api/bookings', async(req,res) =>{
+ const {price, title,userId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
+//  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
+const bookingData = req.body;
+  console.log(req.body);
   
-//   const result = await bookingCollections.insertOne(bookingData)
-//   res.json(result)
-// })
+  const result = await bookingCollections.insertOne(bookingData)
+  res.json(result)
+})
+
 // Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
  app.get("/api/buyer/myorders/:email", async(req, res)=>{
     // res.send('hello server running')
@@ -160,13 +161,22 @@ const result = await bookingCollections.find({buyerEmail: email}).toArray();
    //   // for update bookingdelete 
  app.patch("/booking/:bookingId", async(req, res) =>{
 const {bookingId} = req.params;
+ const { status } = req.body;
 //  console.log("placeId", id);
 // //  if get id then go to mongodoc for delete query
 // // for particular id selection 
 // const query = {_id : new ObjectId(id)}
+
+ // Validate the incoming status
+    const validStatuses = ["pending", "accepted", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
 const result = await bookingCollections.updateOne(
   {_id:new ObjectId(bookingId)},
-{ $set: { status: "cancelled"}}
+// { $set: { status: "cancelled"}}
+{ $set: { status}}
 )
 // console.log(result);
 res.json(result)
@@ -244,13 +254,13 @@ res.json(result)
  }); 
 
 // buyingmodal for Seller order(working)
-// app.post('/api/orders', async (req, res) => {
-//   const buyingOrderData = req.body;
-//   console.log(buyingOrderData, "serverOrder")
-//   const result = await SellerOrderCollections.insertOne(buyingOrderData)
-//   res.json(result);
-//   console.log( "Allordersproducts in server", result)
-// });
+app.post('/api/orders', async (req, res) => {
+  const sellerOrderData = req.body;
+  console.log(sellerOrderData, "serverOrder")
+  const result = await SellerOrderCollections.insertOne(sellerOrderData)
+  res.json(result);
+  console.log( "Allsellerordersproducts in server", result)
+});
 // //  seller manageorders api
  app.get("/api/orders", async(req, res)=>{
     
@@ -278,16 +288,45 @@ res.json(result)
  })
 
 //  seller order rejected power
-app.delete("/api/orders/:id", async(req, res) =>{
-const {id} = req.params
 
-// // //  if get id then go to mongodoc for delete query
-// // // for particular id selection 
-//  const query = {_id : new ObjectId()}
- const result = await SellerOrderCollections.deleteOne({_id:new ObjectId(id)});
 
+ app.patch("/api/orders/:id",async(req, res) =>{
+const {id} = req.params;
+ const { status } = req.body;
+//  console.log("placeId", id);
+// //  if get id then go to mongodoc for delete query
+// // for particular id selection 
+// const query = {_id : new ObjectId(id)}
+
+ // Validate the incoming status
+    const validStatuses = ["pending", "accepted", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+const result = await SellerOrderCollections.updateOne(
+  {_id:new ObjectId(id)},
+// { $set: { status: "cancelled"}}
+{ $set: { status}}
+)
+// console.log(result);
 res.json(result)
- })
+
+ });
+
+
+// app.patch("/api/orders/:id", async(req, res) =>{
+// const {id} = req.params
+
+// // // //  if get id then go to mongodoc for delete query
+// // // // for particular id selection 
+// //  const query = {_id : new ObjectId()}
+//  const result = await SellerOrderCollections.updateOne(
+//   {_id:new ObjectId(id)},
+// { $set: { status: "cancelled" } }
+//  );
+// res.json(result)
+//  })
 
 
 
@@ -295,16 +334,16 @@ res.json(result)
 // sellerorder status update start
 
 // GET all orders (with optional status filter)
-app.get('/api/orders', async (req, res) => {
-  try {
-    const { status } = req.query;
-    const filter = status ? { status } : {};
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+// app.get('/api/orders', async (req, res) => {
+//   try {
+//     const { status } = req.query;
+//     const filter = status ? { status } : {};
+//     const orders = await SellerOrderCollections.find(filter).sort({ createdAt: -1 });
+//     res.json(orders);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
 
 // PATCH update order status
 app.patch('/api/orders/:orderId', async (req, res) => {
@@ -317,7 +356,7 @@ app.patch('/api/orders/:orderId', async (req, res) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
-    const updatedOrder = await Order.findByIdAndUpdate(
+    const updatedOrder = await SellerOrderCollections.findByIdAndUpdate(
       orderId,
       { status },
       { new: true } // আপডেট হওয়া ডকুমেন্টটি রিটার্ন করবে
@@ -654,9 +693,15 @@ res.json(result)
 
 //  for buyer wishlist 
 app.post('/api/wishlist', async(req,res) =>{
- const { productData, productId} = req.body;
+ const { productData, productId, buyerId} = req.body;
 //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
-const wishlistData = req.body;
+// const wishlistData = req.body;
+const wishlistData = {
+    productData,
+    productId,
+    buyerId,         
+    addedAt: new Date()
+  };
   console.log(wishlistData, "buyer wishData");
   
   const result = await wishlistCollections.insertOne(wishlistData)
@@ -665,7 +710,7 @@ const wishlistData = req.body;
 // Buyer wishlist page api. 1ta 1ta kore data phathano mongo thake
  app.get("/api/wishlist", async(req, res)=>{
     // res.send('hello server running')
-   const {buyerId} = req.params;
+   const {buyerId} = req.query;
   //  const {productId} =req.body;
   //  const {productId} = productData._id;
    console.log('buyerwishlist', buyerId)
