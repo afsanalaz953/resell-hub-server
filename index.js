@@ -56,7 +56,66 @@ const bookingCollections = db.collection("orderBookingCollections");
 const userCollection = db.collection("user");
 const wishlistCollections = db.collection("wishlist");
 
+// feature Products data for homepage
+// app.get('/featured', async(req, res) =>{
+// const result = await addproductCollection.find().limit(6).toArray()
+// res.json(result);
+//  })
+// latest products
+app.get('/api/products/latest', async(req, res) =>{
+ try {
+    const limit = parseInt(req.query.limit) || 6;
+    const latestProducts = await addproductCollection.find({status: "Approved"})
+      // .sort({ createdAt: -1 }) // -1 = descending (newest first)
+       .sort({ _id: -1 }) // -1 মানে নতুন -> পুরাতন (MongoDB ObjectId এর সময় অনুযায়ী)
+      .limit(limit)
+      .toArray();
+    
+    res.status(200).json(latestProducts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
+// api for category
+// category r array creation
+app.get("/api/categories", async (req, res) => {
+  try {
+    // Product মডেল থেকে সব ডকুমেন্টের মধ্যে unique category নামগুলো বের করি
+    const categories = await addproductCollection
+    .aggregate([
+        { $group: { _id: "$category" } },   // ক্যাটাগরি অনুযায়ী গ্রুপ
+        { $project: { _id: 0, name: "$_id" } } // ফরম্যাট ঠিক করা
+      ])
+      .toArray();
+        res.status(200).json(categories);
+  } catch (error) {
+    console.error("Category Filter Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// product filter according to category
+app.get("/api/products", async (req, res) => {
+  try {
+    // ইউআরএল থেকে query parameter নিয়ে নিই (যেমন: ?category=Electronics)
+    const { category } = req.query;
+
+    // ফিল্টার অবজেক্ট তৈরি করি
+    let filter = {};
+    if (category) {
+      filter.category = category; // যদি category পাঠানো হয়, তাহলে শুধু ওই ক্যাটাগরির প্রোডাক্ট আনি
+    }
+
+    // ডাটাবেজ থেকে প্রোডাক্ট খুঁজি
+    const products = await addproductCollection.find(filter).toArray();
+
+    // ফলাফল ক্লায়েন্টকে পাঠাই
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("Product Filter Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 app.post("/api/payments", async (req, res) => {
@@ -224,15 +283,37 @@ app.post('/api/seller/products', async(req,res) =>{
 app.get('/api/seller/products', async (req, res) =>{
   const limit = Number(req.query.limit)|| 8;
   const page = Number(req.query.page)|| 1;
+  const category = req.query.category;
 
-  total_data = await addproductCollection.countDocuments()
+  let filter = { status: "Approved" };
+  if (category) {
+    filter.category = category;
+  }
+
+  total_data = await addproductCollection.countDocuments(filter)
 total_page = Math.ceil(total_data/limit)
-
 const skip = (page-1) *limit
 
-const data = await addproductCollection.find({status: "Approved"}).skip(skip).limit(limit).toArray();
+// const data = await addproductCollection.find({status: "Approved"}).skip(skip).limit(limit).toArray();
+const data = await addproductCollection.find(filter).skip(skip).limit(limit).toArray();
 res.json({total_page,page,skip, data}) 
  });
+
+ app.get("/api/categories", async (req, res) => {
+  try {
+    const categories = await addproductCollection
+      .aggregate([
+        { $group: { _id: "$category" } },
+        { $project: { _id: 0, name: "$_id" } }
+      ])
+      .toArray();
+    res.status(200).json(categories);
+  } catch (error) {
+    console.error("Category Filter Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 ///////
 // For admin all products 
