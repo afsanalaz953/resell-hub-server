@@ -195,47 +195,57 @@ app.get("/api/buyer/payment", async (req, res) => {
 
   // for buyer
 // bookingCollection a data dukha from buyingModal-stripe-success
-app.post('/api/bookings', async(req,res) =>{
- const {price, title,userId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
-//  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
-const bookingData = req.body;
-  console.log(req.body);
+// app.post('/api/bookings', async(req,res) =>{
+//  const {price, title,buyerId, status,condition,_id, buyerName, buyerPhone, sellerName, sellerId, productId} = req.body;
+// //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
+// const bookingData = req.body;
+//   console.log(req.body,"bookingData");
   
-  const result = await bookingCollections.insertOne(bookingData)
-  res.json(result)
-})
+//   const result = await bookingCollections.insertOne(bookingData)
+//   // for orderId
+//   res.json({
+//     orderId: result.insertedId,  
+//     message: 'Booking successful',
+//     ...result 
+//   });
+// })
 
-// Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
- app.get("/api/buyer/myorders/:email", async(req, res)=>{
-    // res.send('hello server running')
-   const {email} = req.params;
-   console.log('buyerordersIdemail', email)
-const result = await bookingCollections.find({buyerEmail: email}).toArray();
- res.json(result)
-})
-
+// // Buyer myOrder page api. 1ta 1ta kore data phathano mongo thake
+//  app.get("/api/buyer/myorders/:email", async(req, res)=>{
+//     // res.send('hello server running')
+//    const {email} = req.params;
+//    console.log('buyerordersIdemail', email)
+// const result = await SellerOrderCollections.find({buyerEmail: email}).toArray();
+//  res.json(result)
+// })
+// buyer order page a data ake payemnt orderdata thake asbe
+app.get("/api/orders", async(req, res) => {
+  const { buyerId } = req.query;
+  const result = await SellerOrderCollections.find({ buyerId }).toArray();
+  res.json(result);
+});
  
-// stock update korte hobe
+
 // buyerOreder page delete
    //   // for update bookingdelete 
  app.patch("/booking/:bookingId", async(req, res) =>{
 const {bookingId} = req.params;
- const { status } = req.body;
+ const { orderStatus } = req.body;
 //  console.log("placeId", id);
 // //  if get id then go to mongodoc for delete query
 // // for particular id selection 
 // const query = {_id : new ObjectId(id)}
 
  // Validate the incoming status
-    const validStatuses = ["pending", "accepted", "cancelled"];
-    if (!validStatuses.includes(status)) {
+    const validStatuses = ["pending", "approved", "cancelled"];
+    if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
 const result = await bookingCollections.updateOne(
   {_id:new ObjectId(bookingId)},
 // { $set: { status: "cancelled"}}
-{ $set: { status}}
+{ $set: { orderStatus}}
 )
 // console.log(result);
 res.json(result)
@@ -334,67 +344,93 @@ const result = await addproductCollection.findOne({_id: new ObjectId(id)})
 res.json(result) 
  }); 
 
-// buyingmodal for Seller order(working)
-app.post('/api/orders', async (req, res) => {
+// buyingmodal for Seller order(working) after payment actually orderCollection
+app.post('/api/seller/orders', async (req, res) => {
   const sellerOrderData = req.body;
-  console.log(sellerOrderData, "serverOrder")
+  console.log(sellerOrderData, "sellerserverOrder")
   const result = await SellerOrderCollections.insertOne(sellerOrderData)
   res.json(result);
   console.log( "Allsellerordersproducts in server", result)
 });
 // //  seller manageorders api
- app.get("/api/orders", async(req, res)=>{
+ app.get("/api/seller/orders", async(req, res)=>{
     
    const {sellerId} = req.query;
  const result = await SellerOrderCollections.find({sellerId}).toArray();
  res.json(result)
 })
+
+
+
+
+
 // sellermanageorder updates for Action and Status--- 
 // ✅ PATCH route to update order status
  app.patch("/api/orders/:orderId", async (req, res) => {
-const {orderId} = req.params
+
+try
+{
+  const {orderId} = req.params
 const orderUpdatedData = req.body
-console.log(orderUpdatedData, "orderActionButton")
+console.log(orderUpdatedData, orderId, "orderActionButton with id")
+
+// ✅ ভ্যালিড স্ট্যাটাস চেক (আপনার দ্বিতীয় রাউটের মতোই)
+    const validStatuses = ["pending", "approved",  "cancelled"];
+    if (!orderUpdatedData.orderStatus || !validStatuses.includes(orderUpdatedData.orderStatus)) {
+      return res.orderstatus(400).json({ error: "Invalid status value" });
+    }
+
 const filter = {_id: new ObjectId(orderId)};
  const updatedOrderStatus = {
  $set: {
-  status: orderUpdatedData.status
+  orderStatus: orderUpdatedData.orderStatus
   }
 }
 
 const result = await SellerOrderCollections.updateOne(filter,updatedOrderStatus)
   
-
-res.json(result)
- })
+// ✅ আপডেট সফল কিনা চেক
+    if (result.matchedCount === 0) {
+      return res.orderStatus(404).json({ error: "Order not found" });
+    }
+res.json(
+  { 
+      message: "Order status updated successfully", 
+  result
+ });
+  } catch (error) {
+    console.error(error);
+    res.orderStatus(500).json({ error: "Internal server error" });
+  }
+});
 
 //  seller order rejected power
 
 
  app.patch("/api/orders/:id",async(req, res) =>{
 const {id} = req.params;
- const { status } = req.body;
+ const { orderStatus } = req.body;
 //  console.log("placeId", id);
 // //  if get id then go to mongodoc for delete query
 // // for particular id selection 
 // const query = {_id : new ObjectId(id)}
 
  // Validate the incoming status
-    const validStatuses = ["pending", "accepted", "cancelled"];
-    if (!validStatuses.includes(status)) {
+    const validStatuses = ["pending", "approved", "cancelled"];
+    if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
 const result = await SellerOrderCollections.updateOne(
   {_id:new ObjectId(id)},
-// { $set: { status: "cancelled"}}
-{ $set: { status}}
+// { $set: { orderStatus: "cancelled"}}
+{ $set: { orderStatus}}
 )
 // console.log(result);
 res.json(result)
 
  });
-
+// seller rejectbutton end
 
 // app.patch("/api/orders/:id", async(req, res) =>{
 // const {id} = req.params
