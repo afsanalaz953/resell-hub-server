@@ -61,6 +61,26 @@ const wishlistCollections = db.collection("wishlist");
 // const result = await addproductCollection.find().limit(6).toArray()
 // res.json(result);
 //  })
+// for latest order in buyer dashboard
+app.get('/api/orders/latest', async(req, res) =>{
+ try {
+    const limit = parseInt(req.query.limit) || 2;
+    const latestOrders = await  SellerOrderCollections.find()
+      // .sort({ createdAt: -1 }) // -1 = descending (newest first)
+       .sort({ _id: -1 }) // -1 মানে নতুন -> পুরাতন (MongoDB ObjectId এর সময় অনুযায়ী)
+      .limit(limit)
+      .toArray();
+    
+    res.status(200).json(latestOrders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
+
+
 // latest products
 app.get('/api/products/latest', async(req, res) =>{
  try {
@@ -228,8 +248,8 @@ app.get("/api/orders", async(req, res) => {
 
 // buyerOreder page delete
    //   // for update bookingdelete 
- app.patch("/booking/:bookingId", async(req, res) =>{
-const {bookingId} = req.params;
+ app.patch("api/orders/:id", async(req, res) =>{
+const {id} = req.params;
  const { orderStatus } = req.body;
 //  console.log("placeId", id);
 // //  if get id then go to mongodoc for delete query
@@ -242,8 +262,8 @@ const {bookingId} = req.params;
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-const result = await bookingCollections.updateOne(
-  {_id:new ObjectId(bookingId)},
+const result = await SellerOrderCollections.updateOne(
+  {_id:new ObjectId(id)},
 // { $set: { status: "cancelled"}}
 { $set: { orderStatus}}
 )
