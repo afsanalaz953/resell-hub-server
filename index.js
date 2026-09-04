@@ -10,6 +10,7 @@ const app = express();
 const cors = require('cors');
 const dontenv = require('dotenv');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 dontenv.config()
 const port = process.env.PORT || 5000;
 
@@ -28,14 +29,43 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+// token verification
+// 
+const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`))
+
+
+
+// middleware & token access get from fontend
+const verifyToken = async(req, res, next) =>{
+  const authHeader = req?.headers.authorization
+  console.log(authHeader, "verifytokenheader")
+
+if (!authHeader || !authHeader.startsWith("Bearer")){
+  res.status (401).send({msg:"Unauthorized"})
+}
+const token = authHeader.split(" ")[1];
+console.log(token, "token")
+
+if(!token){
+  return res.status(401).send({msg:"Unauthorized"})
+}
+try{
+const {payload} = await jwtVerify(token, JWKS)
+console.log(payload, "payload")
+next()
+}catch(error){
+console.log(error, "jwksError")
+ res.status(401).send({msg:"Unauthorized"})
+}
+}
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-app.get('/', (req,res) =>{
-    res.send('Hello user')
-} ) 
+// app.get('/', (req,res) =>{
+//     res.send('Hello user')
+// } ) 
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
@@ -138,7 +168,7 @@ app.get("/api/products", async (req, res) => {
 });
 
 
-app.post("/api/payments", async (req, res) => {
+app.post("/api/payments", verifyToken, async (req, res) => {
   try {
     const paymentData = req.body;
     console.log(paymentData, 'serverbuyerPaymentData');
@@ -173,7 +203,7 @@ console.log(paymentData.sessionId, "paymentId")
 });
 
 // payment page a data pahathano 1ta 1ta kore
-app.get("/api/buyer/payment", async (req, res) => {
+app.get("/api/buyer/payment", verifyToken, async (req, res) => {
   try {
     const { buyerEmail} = req.query;  // ✅ query থেকে নিন
 
@@ -239,7 +269,7 @@ app.get("/api/buyer/payment", async (req, res) => {
 //  res.json(result)
 // })
 // buyer order page a data ake payemnt orderdata thake asbe
-app.get("/api/orders", async(req, res) => {
+app.get("/api/orders",  verifyToken, async(req, res) => {
   const { buyerId } = req.query;
   const result = await SellerOrderCollections.find({ buyerId }).toArray();
   res.json(result);
@@ -292,7 +322,7 @@ res.json(result)
 // 2)skip= (pageno.-1)*limit(10)=ans
 
 //1)for getting productsdata from form
-app.post('/api/seller/products', async(req,res) =>{
+app.post('/api/seller/products', verifyToken, async(req,res) =>{
   const productsData = req.body
   const result = await addproductCollection.insertOne(productsData)
   res.json(result)
@@ -347,7 +377,7 @@ res.json({total_page,page,skip, data})
 
 ///////
 // For admin all products 
-app.get('/api/admin/products/all', async (req, res) => {
+app.get('/api/admin/products/all', verifyToken, async (req, res) => {
   const result = await addproductCollection.find({}).toArray();
   res.json(result);
 });
@@ -358,14 +388,14 @@ res.json(result)
  }); 
 
 // for productdetails page
-app.get('/api/seller/products/:id', async (req, res) =>{
+app.get('/api/seller/products/:id', verifyToken, async (req, res) =>{
 const {id} = req.params
 const result = await addproductCollection.findOne({_id: new ObjectId(id)})
 res.json(result) 
  }); 
 
 // buyingmodal for Seller order(working) after payment actually orderCollection
-app.post('/api/seller/orders', async (req, res) => {
+app.post('/api/seller/orders', verifyToken, async (req, res) => {
   const sellerOrderData = req.body;
   console.log(sellerOrderData, "sellerserverOrder")
   const result = await SellerOrderCollections.insertOne(sellerOrderData)
@@ -552,7 +582,7 @@ app.patch('/api/orders/:orderId', async (req, res) => {
 // });
 // code for seaech new---
 // GET /api/seller/productlist
-app.get('/api/seller/productlist', async (req, res) => {
+app.get('/api/seller/productlist', verifyToken, async (req, res) => {
   try {
     const { sellerId, search } = req.query;
 
@@ -789,10 +819,10 @@ app.patch("/api/admin/user/:id", async (req, res) => {
 // });
 
 // //  Admin manageorders api
- app.get("/api/admin/allorders", async(req, res)=>{
+ app.get("/api/admin/allorders",  verifyToken, async(req, res)=>{
   
  const result = await SellerOrderCollections.find()
-//  .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
+ .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
  .toArray();
  res.json(result)
 })
@@ -829,7 +859,7 @@ res.json(result)
  })
 
 //  for buyer wishlist 
-app.post('/api/wishlist', async(req,res) =>{
+app.post('/api/wishlist', verifyToken, async(req,res) =>{
  const { productData, productId, buyerId} = req.body;
 //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
 // const wishlistData = req.body;
