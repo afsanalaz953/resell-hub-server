@@ -8,11 +8,12 @@ const dns = require('node:dns');
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const dontenv = require('dotenv');
+const dotenv = require('dotenv');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
-dontenv.config()
+dotenv.config()
 const port = process.env.PORT || 5000;
+
 
 
 // middleware
@@ -37,14 +38,14 @@ const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks
 
 // middleware & token access get from fontend
 const verifyToken = async(req, res, next) =>{
-  const authHeader = req?.headers.authorization
+  const authHeader = req.headers?.authorization
   console.log(authHeader, "verifytokenheader")
 
 if (!authHeader || !authHeader.startsWith("Bearer")){
-  res.status (401).send({msg:"Unauthorized"})
+  return res.status (401).send({msg:"Unauthorized"})
 }
 const token = authHeader.split(" ")[1];
-console.log(token, "token")
+console.log(token, "tokenserver")
 
 if(!token){
   return res.status(401).send({msg:"Unauthorized"})
@@ -52,12 +53,74 @@ if(!token){
 try{
 const {payload} = await jwtVerify(token, JWKS)
 console.log(payload, "payload")
-next()
+req.user = payload
+
+next();
 }catch(error){
 console.log(error, "jwksError")
  res.status(401).send({msg:"Unauthorized"})
 }
+};
+// seller verify
+const sellerVerify = async(req, res, next) => {
+  const user = req.user;
+ if (!user || user.role !== 'seller') {
+    return res.status(403).json({msg:"Forbidden"})
+  }
+   console.log('User from sellerVerifytoken:', user);
+  next()   
 }
+// Buyer verify
+
+const buyerVerify = async(req, res, next) => {
+  const user = req.user;
+  console.log(user, 'buyerVerify user')
+  if (!user || user.role !== 'buyer') {
+    return res.status(403).json({msg:"Forbidden"})
+  }
+  //  console.log('User from sellerVerifytoken:', user);
+  next()   
+}
+// admin verify
+
+const adminVerify = async(req, res, next) => {
+  const user = req.user;
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({msg:"Forbidden"})
+  }
+  //  console.log('User from sellerVerifytoken:', user);
+  next()   
+}
+
+// blocked middleware
+const checkBlocked = async (req, res, next) => {
+  try {
+    const userEmail = req.user?.email; // verifyToken থেকে আসা ইমেইল
+
+    if (!userEmail) {
+      return res.status(401).json({ msg: "Unauthorized: No user email found" });
+    }
+
+    // ডাটাবেস থেকে ইউজার খুঁজে বের করা
+    const user = await userCollection.findOne({ email: userEmail });
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (user.isBlocked === true) {
+      return res.status(403).json({ 
+        msg: "Your account has been blocked. You cannot perform this action." 
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("❌ Error checking block status:", error);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+};
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
@@ -92,10 +155,16 @@ const wishlistCollections = db.collection("wishlist");
 // res.json(result);
 //  })
 // for latest order in buyer dashboard
-app.get('/api/orders/latest', async(req, res) =>{
+app.get('/api/orders/latest', verifyToken, buyerVerify, async(req, res) =>{
+  const user = req.user;
+   console.log('User from token:', user);
+     console.log('req.user after verify:', req.session);
  try {
     const limit = parseInt(req.query.limit) || 2;
-    const latestOrders = await  SellerOrderCollections.find()
+
+    // const buyerId =  req.query.buyerId || req.user?.id;
+    const buyerId =   req.user?.id;
+    const latestOrders = await  SellerOrderCollections.find({ buyerId: buyerId })
       // .sort({ createdAt: -1 }) // -1 = descending (newest first)
        .sort({ _id: -1 }) // -1 মানে নতুন -> পুরাতন (MongoDB ObjectId এর সময় অনুযায়ী)
       .limit(limit)
@@ -168,7 +237,7 @@ app.get("/api/products", async (req, res) => {
 });
 
 
-app.post("/api/payments", verifyToken, async (req, res) => {
+app.post("/api/payments", verifyToken, buyerVerify, async (req, res) => {
   try {
     const paymentData = req.body;
     console.log(paymentData, 'serverbuyerPaymentData');
@@ -268,10 +337,20 @@ app.get("/api/buyer/payment", verifyToken, async (req, res) => {
 // const result = await SellerOrderCollections.find({buyerEmail: email}).toArray();
 //  res.json(result)
 // })
+// buyer orders for manageOrder
+app.post('/api/buyer/orders', verifyToken, async(req,res) =>{
+  const ordersData = req.body
+  const result = await SellerOrderCollections.insertOne(ordersData)
+  res.json(result)
+})
+
+
+
 // buyer order page a data ake payemnt orderdata thake asbe
-app.get("/api/orders",  verifyToken, async(req, res) => {
-  const { buyerId } = req.query;
-  const result = await SellerOrderCollections.find({ buyerId }).toArray();
+app.get("/api/orders",  verifyToken, buyerVerify, async(req, res) => {
+  // const { buyerId } = req.query;
+  const  userId  = req.user?.id;
+  const result = await SellerOrderCollections.find({ buyerId:userId }).toArray();
   res.json(result);
 });
  
@@ -322,7 +401,7 @@ res.json(result)
 // 2)skip= (pageno.-1)*limit(10)=ans
 
 //1)for getting productsdata from form
-app.post('/api/seller/products', verifyToken, async(req,res) =>{
+app.post('/api/seller/products', verifyToken, checkBlocked, sellerVerify, async(req,res) =>{
   const productsData = req.body
   const result = await addproductCollection.insertOne(productsData)
   res.json(result)
@@ -859,14 +938,14 @@ res.json(result)
  })
 
 //  for buyer wishlist 
-app.post('/api/wishlist', verifyToken, async(req,res) =>{
+app.post('/api/wishlist', verifyToken,  async(req,res) =>{
  const { productData, productId, buyerId} = req.body;
 //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
 // const wishlistData = req.body;
 const wishlistData = {
     productData,
     productId,
-    buyerId,         
+     userId: buyerId,       
     addedAt: new Date()
   };
   console.log(wishlistData, "buyer wishData");
@@ -875,13 +954,14 @@ const wishlistData = {
   res.json(result)
 })
 // Buyer wishlist page api. 1ta 1ta kore data phathano mongo thake
- app.get("/api/wishlist", async(req, res)=>{
+ app.get("/api/wishlist", verifyToken, buyerVerify, async(req, res)=>{
     // res.send('hello server running')
-   const {buyerId} = req.query;
+  //  const {buyerId} = req.query;
+   const userId = req.user?.id
   //  const {productId} =req.body;
   //  const {productId} = productData._id;
-   console.log('buyerwishlist', buyerId)
-const result = await wishlistCollections.find({buyerId}).toArray();
+   console.log('buyerwishlistuserId', userId)
+const result = await wishlistCollections.find({userId}).toArray();
  res.json(result)
 })
 // wishlist delete
