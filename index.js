@@ -952,34 +952,73 @@ app.patch("/api/admin/user/:id", async (req, res) => {
  app.get("/api/admin/allorders", verifyToken, adminVerify, async(req, res)=>{
 
   // search
- 
-try {
-    const { search } = req.query; // কুয়েরি থেকে search নিন
+  try {
+    const { orderId, search } = req.query;
 
     let filter = {};
-    
- // যদি search থাকে, তাহলে নাম বা ইমেইলে খুঁজুন
+
+    // 🔹 _id দিয়ে search
+    if (orderId && orderId.trim() !== '') {
+      if (ObjectId.isValid(orderId)) {
+        filter._id = new ObjectId(orderId);
+      } else {
+        return res.status(400).json({ message: 'Invalid orderId' });
+      }
+    }
+
+    // 🔹 text search (title / orderStatus / customerEmail / buyerName ইত্যাদি)
     if (search && search.trim() !== '') {
+      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { status: { $regex: search, $options: 'i' } }
+        { title:       { $regex: safeSearch, $options: 'i' } },
+        { orderStatus: { $regex: safeSearch, $options: 'i' } },
+        { customerEmail:{ $regex: safeSearch, $options: 'i' } },
+        { buyerName:   { $regex: safeSearch, $options: 'i' } },
+        { sellerName:  { $regex: safeSearch, $options: 'i' } },
+        { productId:   { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
-    const result = await SellerOrderCollections.find(filter)
- .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
- .toArray();
+    const result = await SellerOrderCollections
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .toArray();
+
     res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
-  
-//  const result = await SellerOrderCollections.find()
+});
+ 
+// try {
+//     const { orderId, search } = req.query; // কুয়েরি থেকে search নিন
+
+//     let filter = {orderId : orderId};
+    
+//  // যদি search থাকে, তাহলে নাম বা ইমেইলে খুঁজুন
+//     // if (search && search.trim() !== '') {
+//     //   filter.$or = [
+//     //     { title: { $regex: search, $options: 'i' } },
+//     //     { status: { $regex: search, $options: 'i' } }
+//     //   ];
+//     // }
+//      if (search) {
+//       const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+//       filter.title = { $regex: safeSearch, $options: 'i' };
+//       filter.orderStatus = { $regex: safeSearch, $options: 'i' };
+//     }
+
+//     const result = await SellerOrderCollections.find(filter)
 //  .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
 //  .toArray();
-//  res.json(result)
-})
+//     res.json(result);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+  
+// })
 
 //  Admin allorders update for pending and approved
 app.patch("/api/admin/allorders/:adminorderid", async (req, res) => {
