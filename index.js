@@ -1,7 +1,8 @@
 const dns = require('node:dns');
-
-// // Set custom DNS servers (Google DNS)
  dns.setServers(['8.8.8.8', '8.8.4.4']);
+//  // "start": "node index.js",
+// // Set custom DNS servers (Google DNS)
+
 
 
 // const { ObjectId } = require('mongodb');
@@ -61,7 +62,7 @@ console.log(error, "jwksError")
  res.status(401).send({msg:"Unauthorized"})
 }
 };
-// seller verify
+// // seller verify
 const sellerVerify = async(req, res, next) => {
   const user = req.user;
  if (!user || user.role !== 'seller') {
@@ -70,7 +71,8 @@ const sellerVerify = async(req, res, next) => {
    console.log('User from sellerVerifytoken:', user);
   next()   
 }
-// Buyer verify
+
+// // Buyer verify
 
 const buyerVerify = async(req, res, next) => {
   const user = req.user;
@@ -81,58 +83,53 @@ const buyerVerify = async(req, res, next) => {
   //  console.log('User from sellerVerifytoken:', user);
   next()   
 }
-// admin verify
+// // admin verify
 
 const adminVerify = async(req, res, next) => {
   const user = req.user;
   if (!user || user.role !== 'admin') {
     return res.status(403).json({msg:"Forbidden"})
   }
-  //  console.log('User from sellerVerifytoken:', user);
+   console.log('User from adminVerifytoken:', user);
   next()   
 }
 
 // blocked middleware
-const checkBlocked = async (req, res, next) => {
-  try {
-    const userEmail = req.user?.email; // verifyToken থেকে আসা ইমেইল
+// const checkBlocked = async (req, res, next) => {
+//   try {
+//     const userEmail = req.user?.email; // verifyToken থেকে আসা ইমেইল
 
-    if (!userEmail) {
-      return res.status(401).json({ msg: "Unauthorized: No user email found" });
-    }
+//     if (!userEmail) {
+//       return res.status(401).json({ msg: "Unauthorized: No user email found" });
+//     }
 
-    // ডাটাবেস থেকে ইউজার খুঁজে বের করা
-    const user = await userCollection.findOne({ email: userEmail });
+//     // ডাটাবেস থেকে ইউজার খুঁজে বের করা
+//     const user = await userCollection.findOne({ email: userEmail });
 
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
+//     if (!user) {
+//       return res.status(404).json({ msg: "User not found" });
+//     }
 
-    if (user.isBlocked === true) {
-      return res.status(403).json({ 
-        msg: "Your account has been blocked. You cannot perform this action." 
-      });
-    }
+//     if (user.isBlocked === true) {
+//       return res.status(403).json({ 
+//         msg: "Your account has been blocked. You cannot perform this action." 
+//       });
+//     }
 
-    next();
-  } catch (error) {
-    console.error("❌ Error checking block status:", error);
-    res.status(500).json({ msg: "Internal server error" });
-  }
-};
+//     next();
+//   } catch (error) {
+//     console.error("❌ Error checking block status:", error);
+//     res.status(500).json({ msg: "Internal server error" });
+//   }
+// };
 
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-// app.get('/', (req,res) =>{
-//     res.send('Hello user')
-// } ) 
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`)
-})
+
 
 async function run() {
   try {
@@ -155,15 +152,15 @@ const wishlistCollections = db.collection("wishlist");
 // res.json(result);
 //  })
 // for latest order in buyer dashboard
-app.get('/api/orders/latest', verifyToken, buyerVerify, async(req, res) =>{
+app.get('/api/orders/latest', async(req, res) =>{
   const user = req.user;
    console.log('User from token:', user);
-     console.log('req.user after verify:', req.session);
+     
  try {
     const limit = parseInt(req.query.limit) || 2;
 
     // const buyerId =  req.query.buyerId || req.user?.id;
-    const buyerId =   req.user?.id;
+    const buyerId =   req.user?.id || req.query.buyerId;
     const latestOrders = await  SellerOrderCollections.find({ buyerId: buyerId })
       // .sort({ createdAt: -1 }) // -1 = descending (newest first)
        .sort({ _id: -1 }) // -1 মানে নতুন -> পুরাতন (MongoDB ObjectId এর সময় অনুযায়ী)
@@ -181,7 +178,7 @@ app.get('/api/orders/latest', verifyToken, buyerVerify, async(req, res) =>{
 
 
 // latest products
-app.get('/api/products/latest', async(req, res) =>{
+app.get('/api/products', async(req, res) =>{
  try {
     const limit = parseInt(req.query.limit) || 6;
     const latestProducts = await addproductCollection.find({status: "Approved"})
@@ -237,7 +234,7 @@ app.get("/api/products", async (req, res) => {
 });
 
 
-app.post("/api/payments", verifyToken, buyerVerify, async (req, res) => {
+app.post("/api/payments", async (req, res) => {
   try {
     const paymentData = req.body;
     console.log(paymentData, 'serverbuyerPaymentData');
@@ -272,7 +269,7 @@ console.log(paymentData.sessionId, "paymentId")
 });
 
 // payment page a data pahathano 1ta 1ta kore
-app.get("/api/buyer/payment", verifyToken, async (req, res) => {
+app.get("/api/buyer/payment", verifyToken, buyerVerify, async (req, res) => {
   try {
     const { buyerEmail} = req.query;  // ✅ query থেকে নিন
 
@@ -291,8 +288,8 @@ app.get("/api/buyer/payment", verifyToken, async (req, res) => {
 
 // 5. Atomically decrease availableStock by 1
 // stock kome jasse start
-//  app.patch("/api/products/:id", async (req, res) => {
-// const {id} = req.params
+ app.patch("/api/products/:id", async (req, res) => {
+const {id} = req.params
 // const updatedData = req.body
 // console.log(updatedData)
 // const result = await addproductCollection.updateOne(
@@ -300,7 +297,36 @@ app.get("/api/buyer/payment", verifyToken, async (req, res) => {
 //   { $inc: { stock: -1 } }
 // )
 // res.json(result)
-//  })
+
+const { quantity } = req.body;
+  const quantityNum = parseInt(quantity, 10);
+  if (!quantityNum || quantityNum < 1) {
+    return res.status(400).json({ message: 'Invalid quantity' });
+  }
+
+  try {
+    const result = await addproductCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $inc: { stock: -quantityNum } } // কুয়ান্টিটি অনুযায়ী কমবে
+  //      [
+  //   { $set: { stock: { $subtract: [{ $toInt: "$stock" }, quantity] } } }
+  // ]
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ Stockmessage: 'Server error' });
+  }
+});
+
+
+
+ 
 // stock kome jasse end
   // await addproductCollection.updateOne(
   // //  { _id: new ObjectId(id)},
@@ -338,26 +364,50 @@ app.get("/api/buyer/payment", verifyToken, async (req, res) => {
 //  res.json(result)
 // })
 // buyer orders for manageOrder
-app.post('/api/buyer/orders', verifyToken, async(req,res) =>{
+app.post('/api/orders', verifyToken, async(req,res) =>{
   const ordersData = req.body
   const result = await SellerOrderCollections.insertOne(ordersData)
   res.json(result)
 })
+// code for session checking for duplicate order--
 
+app.get('/api/orders', verifyToken, async (req, res) => {
+  try {
+    const { sessionId } = req.query;
 
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+
+    // MongoDB তে চেক করা এই sessionId দিয়ে কোনো অর্ডার আছে কিনা
+    const existingOrder = await SellerOrderCollections.findOne({ sessionId });
+
+    if (existingOrder) {
+      // ফ্রন্টএন্ড অ্যারে আশা করছে, তাই অ্যারে রিটার্ন করছি
+      return res.json([existingOrder]);
+    } else {
+      // অর্ডার না থাকলে খালি অ্যারে রিটার্ন করছি
+      return res.json([]);
+    }
+
+  } catch (error) {
+    console.error('❌ Error checking existing order:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 // buyer order page a data ake payemnt orderdata thake asbe
-app.get("/api/orders",  verifyToken, buyerVerify, async(req, res) => {
+app.get("/api/buyer/myorders", verifyToken, buyerVerify,  async(req, res) => {
   // const { buyerId } = req.query;
-  const  userId  = req.user?.id;
-  const result = await SellerOrderCollections.find({ buyerId:userId }).toArray();
+  const  userId  = req.user?.id || buyerId;
+  const result = await SellerOrderCollections.find({ buyerId :userId}).toArray();
   res.json(result);
 });
  
 
 // buyerOreder page delete
    //   // for update bookingdelete 
- app.patch("api/orders/:id", async(req, res) =>{
+ app.patch("/api/orders/:id", async(req, res) =>{
 const {id} = req.params;
  const { orderStatus } = req.body;
 //  console.log("placeId", id);
@@ -401,7 +451,7 @@ res.json(result)
 // 2)skip= (pageno.-1)*limit(10)=ans
 
 //1)for getting productsdata from form
-app.post('/api/seller/products', verifyToken, checkBlocked, sellerVerify, async(req,res) =>{
+app.post('/api/seller/products', verifyToken, sellerVerify, async(req,res) =>{
   const productsData = req.body
   const result = await addproductCollection.insertOne(productsData)
   res.json(result)
@@ -456,7 +506,7 @@ res.json({total_page,page,skip, data})
 
 ///////
 // For admin all products 
-app.get('/api/admin/products/all', verifyToken, async (req, res) => {
+app.get('/api/admin/products/all', verifyToken, adminVerify, async (req, res) => {
   const result = await addproductCollection.find({}).toArray();
   res.json(result);
 });
@@ -474,7 +524,7 @@ res.json(result)
  }); 
 
 // buyingmodal for Seller order(working) after payment actually orderCollection
-app.post('/api/seller/orders', verifyToken, async (req, res) => {
+app.post('/api/seller/orders', async (req, res) => {
   const sellerOrderData = req.body;
   console.log(sellerOrderData, "sellerserverOrder")
   const result = await SellerOrderCollections.insertOne(sellerOrderData)
@@ -482,7 +532,7 @@ app.post('/api/seller/orders', verifyToken, async (req, res) => {
   console.log( "Allsellerordersproducts in server", result)
 });
 // //  seller manageorders api
- app.get("/api/seller/orders", async(req, res)=>{
+ app.get("/api/seller/orders", verifyToken, sellerVerify, async(req, res)=>{
     
    const {sellerId} = req.query;
  const result = await SellerOrderCollections.find({sellerId}).toArray();
@@ -592,31 +642,31 @@ res.json(result)
 // });
 
 // PATCH update order status
-app.patch('/api/orders/:orderId', async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { status } = req.body;
+// app.patch('/api/orders/:orderId', async (req, res) => {
+//   try {
+//     const { orderId } = req.params;
+//     const { status } = req.body;
 
-    // শুধুমাত্র অনুমোদিত স্ট্যাটাসগুলো গ্রহণ করি
-    if (!['pending', 'canceled', 'delivered'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
+//     // শুধুমাত্র অনুমোদিত স্ট্যাটাসগুলো গ্রহণ করি
+//     if (!['pending', 'canceled', 'delivered'].includes(status)) {
+//       return res.status(400).json({ message: 'Invalid status' });
+//     }
 
-    const updatedOrder = await SellerOrderCollections.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true } // আপডেট হওয়া ডকুমেন্টটি রিটার্ন করবে
-    );
+//     const updatedOrder = await SellerOrderCollections.findByIdAndUpdate(
+//       orderId,
+//       { status },
+//       { new: true } // আপডেট হওয়া ডকুমেন্টটি রিটার্ন করবে
+//     );
 
-    if (!updatedOrder) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+//     if (!updatedOrder) {
+//       return res.status(404).json({ message: 'Order not found' });
+//     }
 
-    res.json(updatedOrder);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+//     res.json(updatedOrder);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
 
 
 
@@ -661,7 +711,7 @@ app.patch('/api/orders/:orderId', async (req, res) => {
 // });
 // code for seaech new---
 // GET /api/seller/productlist
-app.get('/api/seller/productlist', verifyToken, async (req, res) => {
+app.get('/api/seller/productlist',  async (req, res) => {
   try {
     const { sellerId, search } = req.query;
 
@@ -759,7 +809,7 @@ res.json(result)
 
 
 //  Admin products update for pending and approved
-app.patch("/api/products/:adminproductid", async (req, res) => {
+app.patch("/api/products/status/:adminproductid", async (req, res) => {
 const {adminproductid} = req.params;
 const updatedAdminProductData = req.body
 console.log(updatedAdminProductData, "adminupdatedproduct")
@@ -789,7 +839,7 @@ res.json(result)
 
 // //  admin manageUser page api, query thak enite hobe whole user, akta user 
 // means userId nile hobe na. $ne=not equal
- app.get("/api/admin/user", async(req, res)=>{
+ app.get("/api/admin/user", verifyToken, adminVerify, async(req, res)=>{
     // res.send('hello server running')
   //  const {userId} = req.query;
 //   const result = await userCollection.find({ role: { $ne: 'admin'}}).toArray();
@@ -898,7 +948,7 @@ app.patch("/api/admin/user/:id", async (req, res) => {
 // });
 
 // //  Admin manageorders api
- app.get("/api/admin/allorders",  verifyToken, async(req, res)=>{
+ app.get("/api/admin/allorders", verifyToken, adminVerify, async(req, res)=>{
   
  const result = await SellerOrderCollections.find()
  .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
@@ -938,14 +988,15 @@ res.json(result)
  })
 
 //  for buyer wishlist 
-app.post('/api/wishlist', verifyToken,  async(req,res) =>{
+app.post('/api/wishlist', verifyToken, buyerVerify,  async(req,res) =>{
  const { productData, productId, buyerId} = req.body;
 //  const { sessionId, status, customerEmail, metadata, createdAt } = req.body;
 // const wishlistData = req.body;
 const wishlistData = {
     productData,
     productId,
-     userId: buyerId,       
+       buyerId,
+       
     addedAt: new Date()
   };
   console.log(wishlistData, "buyer wishData");
@@ -957,13 +1008,36 @@ const wishlistData = {
  app.get("/api/wishlist", verifyToken, buyerVerify, async(req, res)=>{
     // res.send('hello server running')
   //  const {buyerId} = req.query;
-   const userId = req.user?.id
+   const userId = req.user?.id || req.query?.buyerId;
+  //  const userId = req.user?.id;
   //  const {productId} =req.body;
   //  const {productId} = productData._id;
    console.log('buyerwishlistuserId', userId)
-const result = await wishlistCollections.find({userId}).toArray();
+const result = await wishlistCollections.find({buyerId: userId }).toArray();
  res.json(result)
 })
+// overview wishlist
+app.get('/api/wishlist/latest', verifyToken, buyerVerify, async(req, res) =>{
+  const user = req.user;
+   console.log('User from token:', user);
+     
+ try {
+    const limit = parseInt(req.query.limit) || 3;
+
+    // const buyerId =  req.query.buyerId || req.user?.id;
+    const buyerId =   req.user?.id || req.query?.buyerId;
+    const latestWishlists = await  wishlistCollections.find({ buyerId: buyerId })
+      // .sort({ createdAt: -1 }) // -1 = descending (newest first)
+       .sort({ _id: -1 }) // -1 মানে নতুন -> পুরাতন (MongoDB ObjectId এর সময় অনুযায়ী)
+      .limit(limit)
+      .toArray();
+    
+    res.status(200).json(latestWishlists);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+  })
+
 // wishlist delete
 app.delete("/api/wishlist/:id", async(req, res) =>{
 const {id} = req.params;
@@ -977,10 +1051,20 @@ console.log(req.params, "wishlistdeleteid")
 res.json(result)
  })
 
+app.get('/login',(req,res) =>{
+res.send("hello login page")
+
+})
+app.get('/register',(req,res) =>{
+res.send("hello register page")
+
+})
 
 
 
-
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`)
+})
 
 
     // Send a ping to confirm a successful connection
@@ -992,3 +1076,7 @@ res.json(result)
   }
 }
 run().catch(console.dir);
+
+
+
+
