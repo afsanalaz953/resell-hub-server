@@ -451,6 +451,7 @@ res.json(result)
 // 2)skip= (pageno.-1)*limit(10)=ans
 
 //1)for getting productsdata from form
+// seller addProducts
 app.post('/api/seller/products', verifyToken, sellerVerify, async(req,res) =>{
   const productsData = req.body
   const result = await addproductCollection.insertOne(productsData)
@@ -470,7 +471,7 @@ app.post('/api/seller/products', verifyToken, sellerVerify, async(req,res) =>{
 //  }); 
 //  pagination start for productpage
 app.get('/api/seller/products', async (req, res) =>{
-  const limit = Number(req.query.limit)|| 8;
+  const limit = Number(req.query.limit)|| 9;
   const page = Number(req.query.page)|| 1;
   const category = req.query.category;
 
@@ -484,7 +485,7 @@ total_page = Math.ceil(total_data/limit)
 const skip = (page-1) *limit
 
 // const data = await addproductCollection.find({status: "Approved"}).skip(skip).limit(limit).toArray();
-const data = await addproductCollection.find(filter).skip(skip).limit(limit).toArray();
+const data = await addproductCollection.find(filter).sort({ createdAt: -1 }) .skip(skip).limit(limit).toArray();
 res.json({total_page,page,skip, data}) 
  });
 
@@ -535,7 +536,7 @@ app.post('/api/seller/orders', async (req, res) => {
  app.get("/api/seller/orders", verifyToken, sellerVerify, async(req, res)=>{
     
    const {sellerId} = req.query;
- const result = await SellerOrderCollections.find({sellerId}).toArray();
+ const result = await SellerOrderCollections.find({sellerId}) .sort({ createdAt: -1 }) .toArray();
  res.json(result)
 })
 
@@ -711,7 +712,7 @@ res.json(result)
 // });
 // code for seaech new---
 // GET /api/seller/productlist
-app.get('/api/seller/productlist',  async (req, res) => {
+app.get('/api/seller/productlist', verifyToken, sellerVerify,  async (req, res) => {
   try {
     const { sellerId, search } = req.query;
 
@@ -949,11 +950,35 @@ app.patch("/api/admin/user/:id", async (req, res) => {
 
 // //  Admin manageorders api
  app.get("/api/admin/allorders", verifyToken, adminVerify, async(req, res)=>{
-  
- const result = await SellerOrderCollections.find()
+
+  // search
+ 
+try {
+    const { search } = req.query; // কুয়েরি থেকে search নিন
+
+    let filter = {};
+    
+ // যদি search থাকে, তাহলে নাম বা ইমেইলে খুঁজুন
+    if (search && search.trim() !== '') {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { status: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const result = await SellerOrderCollections.find(filter)
  .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
  .toArray();
- res.json(result)
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+  
+//  const result = await SellerOrderCollections.find()
+//  .sort({ createdAt: -1 })       // নতুন অর্ডার আগে দেখাবে   
+//  .toArray();
+//  res.json(result)
 })
 
 //  Admin allorders update for pending and approved
