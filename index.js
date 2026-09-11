@@ -471,7 +471,7 @@ app.post('/api/seller/products', verifyToken, sellerVerify, async(req,res) =>{
 //  }); 
 //  pagination start for productpage
 app.get('/api/seller/products', async (req, res) =>{
-  const limit = Number(req.query.limit)|| 9;
+  const limit = Number(req.query.limit)|| 8;
   const page = Number(req.query.page)|| 1;
   const category = req.query.category;
 
@@ -485,7 +485,7 @@ total_page = Math.ceil(total_data/limit)
 const skip = (page-1) *limit
 
 // const data = await addproductCollection.find({status: "Approved"}).skip(skip).limit(limit).toArray();
-const data = await addproductCollection.find(filter).sort({ createdAt: -1 }) .skip(skip).limit(limit).toArray();
+const data = await addproductCollection.find(filter).skip(skip).limit(limit).toArray();
 res.json({total_page,page,skip, data}) 
  });
 
@@ -527,8 +527,15 @@ res.json(result)
 // buyingmodal for Seller order(working) after payment actually orderCollection
 app.post('/api/seller/orders', async (req, res) => {
   const sellerOrderData = req.body;
-  console.log(sellerOrderData, "sellerserverOrder")
-  const result = await SellerOrderCollections.insertOne(sellerOrderData)
+
+   // নতুন date add করা হচ্ছে
+  const orderDataWithDate = {
+    ...sellerOrderData,
+    createdAt: new Date(),        // অথবা new Date().toISOString()
+  };
+   console.log(orderDataWithDate, "sellerserverOrder");
+  // const result = await SellerOrderCollections.insertOne(sellerOrderData)
+  const result = await SellerOrderCollections.insertOne(orderDataWithDate)
   res.json(result);
   console.log( "Allsellerordersproducts in server", result)
 });
@@ -972,7 +979,7 @@ app.patch("/api/admin/user/:id", async (req, res) => {
       filter.$or = [
         { title:       { $regex: safeSearch, $options: 'i' } },
         { orderStatus: { $regex: safeSearch, $options: 'i' } },
-        { customerEmail:{ $regex: safeSearch, $options: 'i' } },
+       
         { buyerName:   { $regex: safeSearch, $options: 'i' } },
         { sellerName:  { $regex: safeSearch, $options: 'i' } },
         { productId:   { $regex: safeSearch, $options: 'i' } },
